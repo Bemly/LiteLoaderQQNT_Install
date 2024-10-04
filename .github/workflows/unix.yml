@@ -1,19 +1,25 @@
-name: Install and Test LL on Linux Old
+name: macOS and Linux
 
 on:
   push:
     paths:
-      - 'install_linux.sh'
-      - '.github/workflows/linux.yml'
+      - 'install.sh'
+      - '.github/workflows/unix.yml'
   pull_request:
     paths:
-      - 'install_linux.sh'
-      - '.github/workflows/linux.yml'
+      - 'install.sh'
+      - '.github/workflows/unix.yml'
   workflow_dispatch:
 
 jobs:
   install_and_test:
-    runs-on: ubuntu-latest
+    runs:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
 
     steps:
     - name: Checkout code
@@ -26,30 +32,60 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0
         python3 -m pip install --upgrade pip
         pip install -r requirements.txt
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          sudo apt-get install -f
+          sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0
+        fi
 
     - name: Download and Install QQ Software
       run: |
-        python3 get_qqnt.py Debianx64
-        sudo dpkg -i LinuxQQ.deb
-        sudo apt-get install -f
-
-    - name: Run install_linux.sh
-      run: |
-        chmod +x install_linux.sh
-        ./install_linux.sh
-
-    - name: Check output and directory existence
-      run: |
-        if ! /opt/QQ/qq --logging-enable | grep -q "[LiteLoader]" || [ ! -d "/opt/LiteLoader/plugins" ]; then
-          echo "LiteLoader not found in output or /opt/LiteLoader/plugins directory does not exist. Test failed."
-          exit 1
-        else
-          echo "LiteLoader found in output and /opt/LiteLoader/plugins directory exists. Test succeeded."
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          python3 get_qqnt.py Debianx64
+          sudo dpkg -i LinuxQQ.deb
+        elif [[ "$RUNNER_OS" == "macos-latest" ]]; then
+          python3 get_qqnt.py Macos
+          hdiutil attach QQ.dmg
+          cp -R /Volumes/QQ/QQ.app /Applications
+          hdiutil detach /Volumes/QQ
         fi
 
+    - name: Run install.sh
+      run: |
+        chmod +x install.sh
+        ./install.sh
+
+    - name: Check LiteLoader
+      run: |
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          if ! (/opt/QQ/qq --logging-enable | grep -q "[LiteLoader]") || [ ! -d "/opt/LiteLoader/data" ]; then
+            echo "LiteLoader not found in output or /opt/LiteLoader/data directory does not exist. Test failed."
+            exit 1
+          else
+            echo "LiteLoader found in output and /opt/LiteLoader/data directory exists. Test succeeded."
+          fi
+        elif [[ "$RUNNER_OS" == "macos-latest" ]]; then
+          /Applications/QQ.app/Contents/MacOS/QQ &  # 启动 QQ，放入后台
+          sleep 3  # 等待 3 秒
+          pkill QQ  # 关闭 QQ 应用程序
+
+          if [ -d "$HOME/Library/Containers/com.tencent.qq/Data/Documents/LiteLoader/data" ]; then
+            echo "LiteLoader data folder exists. Test succeeded."
+          else
+            echo "LiteLoader data folder does not exist. Test failed."
+            exit 1
+          fi
+        fi
+
+    - name: Set up iptables rules
+      if: runner.os == 'Linux'
+      run: |
+        sudo iptables -A OUTPUT -d github.com -j REJECT
+
+    - name: ReRun install.sh
+      run: |
+        ./install.sh
 
   release:
     runs-on: ubuntu-latest
@@ -103,7 +139,6 @@ jobs:
           prerelease: true
           body_path: release_body.txt
           files: |
-            install_linux.sh
             install.sh
         env:
           GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
