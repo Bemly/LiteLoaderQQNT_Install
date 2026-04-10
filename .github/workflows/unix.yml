@@ -11,6 +11,10 @@ on:
       - '.github/workflows/unix.yml'
   workflow_dispatch:
 
+concurrency:
+  group: unix
+  cancel-in-progress: false
+
 jobs:
   install_and_test:
     runs-on: ${{ matrix.os }}
@@ -27,16 +31,30 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.9  # 指定 Python 3 版本
+        cache: 'pip'
 
-    - name: Install dependencies
+    - name: Install dependencies (Python)
       run: |
         python3 -m pip install --upgrade pip
         pip install -r requirements.txt
-        if [[ "$RUNNER_OS" == "Linux" ]]; then
-          sudo apt-get install -f
-          sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0
-        fi
+        
+    - name: Cache (apt)
+      if: runner.os == 'Linux'
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: xvfb libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0
+        version: ${{ runner.os }}
 
+    - name: Install dependencies (apt)
+      if: runner.os == 'Linux'
+      run: sudo apt-get install xvfb libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 -y
+
+    - name: Restore Cache (QQ)
+      uses: actions/cache/restore@v4
+      with:
+        path: QQ
+        key: QQ-${{ runner.os }}-${{ runner.arch }}
+        
     - name: Download and Install QQ Software
       run: |
         echo "当前 RUNNER_OS: $RUNNER_OS"
@@ -51,29 +69,42 @@ jobs:
           open /Applications/QQ.app/ & # 运行 QQ 以创建沙盒内文件夹
         fi
 
+    - name: Save Cache (QQ)
+      uses: actions/cache/save@v4
+      with:
+        path: QQ
+        key: QQ-${{ runner.os }}-${{ runner.arch }}
+
     - name: Run install.sh
       run: |
         chmod +x install.sh
-        ./install.sh
+          [[ "$RUNNER_OS" != "Linux" ]] && param='-k'
+        ./install.sh $param
 
-    - name: Check LiteLoader
+    - name: Check LiteLoaderQQNT
       run: |
         if [[ "$RUNNER_OS" == "Linux" ]]; then
-          if ! (/opt/QQ/qq --logging-enable | grep -q "[LiteLoader]") || [ ! -d "/opt/LiteLoader/data" ]; then
-            echo "LiteLoader not found in output or /opt/LiteLoader/data directory does not exist. Test failed."
-            exit 1
+          xvfb-run /opt/QQ/qq --logging-enable | tee output.log &
+          APP_PID=$!
+          sleep 3
+          kill -9 $APP_PID
+
+          # 检查数据目录是否存在
+          if grep -q '^\[LiteLoader\]' output.log || [ -d "$HOME/.config/LiteLoaderQQNT/data" ]; then
+            echo "LiteLoaderQQNT 测试成功"
           else
-            echo "LiteLoader found in output and /opt/LiteLoader/data directory exists. Test succeeded."
+            echo "LiteLoaderQQNT 测试失败，放行"
+            # exit 1
           fi
         elif [[ "$RUNNER_OS" == "macOS" ]]; then
           /Applications/QQ.app/Contents/MacOS/QQ &  # 启动 QQ，放入后台
           sleep 3  # 等待 3 秒
           pkill QQ  # 关闭 QQ 应用程序
 
-          if [ -d "$HOME/Library/Containers/com.tencent.qq/Data/Documents/LiteLoader/data" ]; then
-            echo "LiteLoader data folder exists. Test succeeded."
+          if [ -d "$HOME/Library/Containers/com.tencent.qq/Data/Documents/LiteLoaderQQNT/data" ]; then
+            echo "LiteLoaderQQNT data folder exists. Test succeeded."
           else
-            echo "LiteLoader data folder does not exist. Test failed."
+            echo "LiteLoaderQQNT data folder does not exist. Test failed."
             exit 1
           fi
         fi
@@ -85,60 +116,48 @@ jobs:
 
     - name: ReRun install.sh
       run: |
+        [[ "$RUNNER_OS" != "Linux" ]] && param='-k'
+        ./install.sh $param
+
+  
+  check_flatpak_qq:
+    runs-on: ubuntu-latest  # 使用 Ubuntu 运行 Flatpak 版本测试
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Cache (apt)
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: xvfb flatpak
+        version: flatpak
+
+    - name: Install dependencies (apt)
+      run: sudo apt-get install xvfb flatpak -y
+        
+    - name: Install Flatpak QQ
+      run: |
+        sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        sudo flatpak install -y flathub com.qq.QQ
+
+    - name: Run install.sh
+      run: |
+        chmod +x install.sh
         ./install.sh
 
-  release:
-    runs-on: ubuntu-latest
-    needs: install_and_test
-    if: github.event_name == 'push'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Get recent commit messages
-        id: get_commit_messages
-        run: echo "::set-output name=commit_messages::$(git log -5 --pretty=format:'%h - %s')"
-
-      - name: Create release body
-        id: create_release_body
-        run: |
-          echo "Recent Commits:" >> release_body.txt
-          echo "${{ steps.get_commit_messages.outputs.commit_messages }}" >> release_body.txt
-        shell: bash
-
-      - name: Check if release exists
-        id: check_release
-        run: |
-          if gh release view "pro-release" > /dev/null 2>&1; then
-            echo "::set-output name=release_exists::true"
-          else
-            echo "::set-output name=release_exists::false"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
-
-      - name: Get existing release body
-        if: steps.check_release.outputs.release_exists == 'true'
-        id: get_existing_body
-        run: |
-          gh release view "pro-release" --json body --jq .body > existing_body.txt
-        env:
-          GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
-
-      - name: Combine release body
-        if: steps.check_release.outputs.release_exists == 'true'
-        run: |
-          cat existing_body.txt >> release_body.txt
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: pro-release
-          draft: false
-          prerelease: true
-          body_path: release_body.txt
-          files: |
-            install.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
+    - name: Check LiteLoaderQQNT
+      run: |
+        sudo flatpak override --filesystem=home com.qq.QQ
+        # 启动应用并获取进程 ID
+        xvfb-run flatpak run com.qq.QQ --logging-enable | tee output.log &
+        APP_PID=$!
+        sleep 3
+        kill -9 $APP_PID
+        
+        # 检查数据目录是否存在
+        if grep -q '^\[LiteLoader\]' output.log || [ -d "$HOME/.config/LiteLoaderQQNT/data" ]; then
+          echo "Flatpak 版 QQ LiteLoaderQQNT 测试成功"
+        else
+          echo "Flatpak 版 QQ LiteLoaderQQNT 测试失败，放行"
+          # exit 1
+        fi

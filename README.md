@@ -9,37 +9,28 @@
 
 ## 最新版本支持
 
-[![Install, Test and Release on Windows](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/windows.yml/badge.svg)](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/windows.yml)
-[![Install and Test LL on Windows with Nuitka](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/windows_nuitka.yml/badge.svg)](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/windows_nuitka.yml)
-[![Install and Test LL on Linux](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/linux.yml/badge.svg)](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/linux.yml)
-[![Install and Test LL on macOS](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/macOS.yml/badge.svg)](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/macOS.yml)
-[![Create and Test AppImage](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/appimage.yml/badge.svg)](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/appimage.yml)
+[![Windows](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/windows.yml/badge.svg)](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/windows.yml)
+[![Linux](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/linux.yml/badge.svg)](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/linux.yml)
+[![macOS](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/macOS.yml/badge.svg)](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/macOS.yml)
+[![AppImage](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/appimage.yml/badge.svg)](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/appimage.yml)
 
 
 ## 使用方法
 
-Windows 运行对应 exe 即可 [Releases 下载链接](https://github.com/Mzdyl/LiteLoaderQQNT_Install/releases/latest/download/install_windows.exe) 
+### Windows
 
-mac/linux 下载运行 [Releases](https://github.com/Mzdyl/LiteLoaderQQNT_Install/releases) 中对应脚本或者终端输入下方指令运行
+运行对应 exe 即可：[Releases 下载链接](https://github.com/Mzdyl/LiteLoaderQQNT_Install/releases/latest/download/install_windows.exe)
+或从 [Github Action](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions/workflows/windows.yml) 获取测试版
 
-```shell
-# Stable通道(mac/linux) 
-curl -L "https://github.com/Mzdyl/LiteLoaderQQNT_Install/releases/latest/download/install.sh" | bash 
-```
+### Linux/macOS
 
-
-### 测试版
-
-Windows 用户可以通过 [Github Action](https://github.com/Mzdyl/LiteLoaderQQNT_Install/actions) 下载最新测试版本
-
-
-macOS/Linux 可以在终端中复制运行
+下载运行 [Releases](https://github.com/Mzdyl/LiteLoaderQQNT_Install/releases/latest) 中对应脚本或者终端输入下方指令运行
 
 ```shell
-# Git通道(mac/linux)
-curl -L "https://github.com/Mzdyl/LiteLoaderQQNT_Install/raw/main/install.sh"| bash
+bash <(curl -s -L "https://github.com/Mzdyl/LiteLoaderQQNT_Install/raw/main/install.sh")
 ```
-使用最新测试版本
+
+更多自定义支持见 `install.sh --help`
 
 ## 版本支持
 
@@ -62,7 +53,7 @@ install_mac_launchd.sh 是给 macOS 写的设定环境变量的版本
 
 **Windows 用户请确保使用 管理员身份运行。**
 
-**macOS 遇到 Operation not permitted 请检查是否给予 终端 完全磁盘访问权限 或者 允许 终端想访问其他App的数据。**
+**macOS 遇到 Operation not permitted 请检查是否给予 终端 完全磁盘访问权限 或者 允许 终端想访问其他App的数据 以及 App管理 中允许 终端。**
 
 **LiteLoaderQQNT 安装后无法使用插件请自行检测原因或加群交流，本脚本仅负责安装，同时步骤完全遵循官网指南**
 
@@ -89,11 +80,11 @@ LiteLoaderQQNT群: [Telegram](https://t.me/LiteLoaderQQNT)
 - [x] [.github/workflows ](https://github.com/Mzdyl/LiteLoaderQQNT_Install/tree/main/.github/workflows) 更新QQ安装包版本
 - [x] [README.md](https://github.com/Mzdyl/LiteLoaderQQNT_Install/blob/main/README.md) 使用GitHub徽章显示通过自动化 ci 监测 LL 与 QQ 最新版的兼容状态
 - [x] [install_mac.sh](https://github.com/Mzdyl/LiteLoaderQQNT_Install/blob/main/install_mac.sh) **研究如何快速复制 plugins 和 data 文件夹（NEED HELP）**
-- [ ] [install.sh](https://github.com/Mzdyl/LiteLoaderQQNT_Install/blob/main/install.sh) 跟上 win 代码的反代逻辑，目前的过于简陋
+- [x] [install.sh](https://github.com/Mzdyl/LiteLoaderQQNT_Install/blob/main/install.sh) 跟上 win 代码的反代逻辑，目前的过于简陋
 - [ ] [install_windows.py](https://github.com/Mzdyl/LiteLoaderQQNT_Install/blob/main/install_windows.py) 已经发现的潜在问题修复
-
+- [ ] [install_windows.py](https://github.com/Mzdyl/LiteLoaderQQNT_Install/blob/main/install_windows.py) 精简代码，现在太屎山了
+- [ ] [install_windows.py](https://github.com/Mzdyl/LiteLoaderQQNT_Install/blob/main/install_windows.py) 完善下版本判断，小于10MB太抽象了
 - [ ] [install_windows.py](https://github.com/Mzdyl/LiteLoaderQQNT_Install/blob/main/install_windows.py) 是否需要其他插件安装功能？
-
 
 ## 特别鸣谢：
 

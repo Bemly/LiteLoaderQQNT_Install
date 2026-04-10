@@ -19,37 +19,32 @@ from tkinter import filedialog
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 当前版本号
-current_version = "1.17"
+current_version = "1.18.1"
 
+class Config:
+    def __init__(self, timeout=5):
+        self.timeout = timeout
+        
+config = Config()
 
 # 存储反代服务器的URL
 def get_github_proxy_urls():
     return [
-        "https://gh.h233.eu.org",
+        "https://ghfast.top"
         "https://gh.ddlc.top",
         "https://slink.ltd",
-        "https://gh.con.sh",
         "https://cors.isteed.cc",
         "https://hub.gitmirror.com",
         "https://sciproxy.com",
-        "https://ghproxy.cc",
-        "https://cf.ghproxy.cc",
-        "https://www.ghproxy.cc",
-        "https://ghproxy.cn",
-        "https://www.ghproxy.cn",
-        "https://gh.jiasu.in",
-        "https://dgithub.xyz",
-        "https://download.ixnic.net",
-        "https://download.nuaa.cf",
-        "https://download.scholar.rr.nu",
-        "https://download.yzuu.cf",
-        "https://mirror.ghproxy.com",
         "https://ghproxy.net",
-        "https://kkgithub.com",
         "https://gitclone.com",
         "https://hub.incept.pw",
         "https://github.moeyy.xyz",
-        "https://mirror.ghproxy.com"
+        "https://dl.ghpig.top",
+        "https://gh-proxy.com",
+        "https://hub.whtrys.space",
+        "https://gh-proxy.ygxz.in",
+        "https://ghproxy.net"
     ]
 
 
@@ -94,7 +89,7 @@ def patch_pe_file(file_path):
         # 如果备份文件已存在，覆盖它
         if os.path.exists(backup_path):
             os.remove(backup_path)
-            print(f"已删除旧的备份文件: {backup_path}")
+#           print(f"已删除旧的备份文件: {backup_path}")
             
         # 创建新的备份
         os.rename(file_path, backup_path)
@@ -169,15 +164,8 @@ def check_for_updates():
 
         if compare_versions(latest_release, current_version):
             print(f"发现新版本 {latest_release}！")
-
             # 提示用户是否下载更新
-            print("是否要下载更新？输入 'y' 确认，5 秒内未输入则跳过更新。")
-            start_time = time.time()
-            user_input = None
-            while (time.time() - start_time) < 5:
-                if msvcrt.kbhit():
-                    user_input = msvcrt.getch().decode("utf-8").strip().lower()
-                    break
+            user_input = countdown_input("是否要下载更新？输入 'y' 确认，5 秒内未输入则跳过更新。","n")
 
             if user_input == 'y':
                 download_url = f"https://github.com/Mzdyl/LiteLoaderQQNT_Install/releases/download/{latest_release}/install_windows.exe"
@@ -234,10 +222,10 @@ def get_document_path() -> str:
     return path
 
 
-def can_connect_to_github():
+def can_connect(url, timeout=2):
     try:
-        response = requests.head("https://github.com", timeout=5)
-        return response.status_code == 200
+        response = requests.head(url, timeout=timeout)
+        return response.status_code >= 200 and response.status_code < 400
     except requests.exceptions.RequestException:
         return False
 
@@ -255,18 +243,18 @@ def install_liteloader(file_path):
         if os.path.exists(source_dir):
             try:
                 os.rename(source_dir, destination_dir)
-                print(f"已将旧版重命名为: {destination_dir}")
+                print(f"已将旧版备份为: {destination_dir}")
             except Exception as e1:
                 print(f"重命名失败，尝试使用 shutil.move() 重命名: {e1}")
                 try:
                     time.sleep(1)  # 等待一秒，防止文件被锁定
                     shutil.move(source_dir, destination_dir)
-                    print(f"已将旧版重命名为: {destination_dir}")
+                    print(f"已将旧版备份为: {destination_dir}")
                 except Exception as e2:
                     print(f"使用 shutil.move() 重命名失败: {e2}")
 
-        print(f"移动自: {os.path.join(temp_dir, 'LiteLoaderQQNT')}")
-        print(f"移动到: {source_dir}")
+#       print(f"移动自: {os.path.join(temp_dir, 'LiteLoaderQQNT')}")
+#       print(f"移动到: {source_dir}")
 
         try:
             shutil.move(os.path.join(temp_dir, "LiteLoaderQQNT"), source_dir)
@@ -282,11 +270,12 @@ def install_liteloader(file_path):
         print(f"安装LL过程发生错误: {e}")
 
 
-def countdown_input(prompt, default='y', timeout=5):
+def countdown_input(prompt, default='y'):
     print(prompt)
+    
     start_time = time.time()
     user_input = None
-    while (time.time() - start_time) < timeout:
+    while (time.time() - start_time) < config.timeout:
         if msvcrt.kbhit():
             user_input = msvcrt.getch().decode("utf-8").strip().lower()
             break
@@ -359,8 +348,8 @@ def cleanup_old_bak(qq_exe_path):
         if os.path.exists(bak_file_path):
             os.remove(bak_file_path)
             print(f"已删除备份文件: {bak_file_path}")
-        else:
-            print("备份文件不存在，无需删除。")
+#       else:
+#           print("备份文件不存在，无需删除。")
 
         # 移除旧版备份文件夹
         try:
@@ -403,7 +392,7 @@ def create_launcher_js(file_path, version_path, launcher_name="ml_install.js"):
         with open(launcher_js_path, "w", encoding="utf-8") as f:
             f.write(f"require(String.raw`{os.path.join(file_path, 'resources', 'app', 'LiteLoaderQQNT').replace(os.sep, '/')}`);\n")
             
-        print(f"已创建 {launcher_name} 文件，路径为: {launcher_js_path}")
+        print(f"已创建 {launcher_name} 文件")
         return launcher_js_path
     
     except Exception as e:
@@ -490,7 +479,7 @@ def change_folder_permissions(folder_path, user, permissions):
     try:
         cmd = ["icacls", folder_path, "/grant", f"{user}:{permissions}", "/t"]
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
-        print(f"成功修改文件夹 {folder_path} 的权限。")
+#       print(f"成功修改文件夹 {folder_path} 的权限。")
     except subprocess.CalledProcessError as e:
         print(f"修改文件夹权限时出错: {e}")
 
@@ -514,26 +503,23 @@ def install_plugin_store(file_path):
         existing_destination_path = os.path.join(plugin_path, 'list-viewer')
         
         temp_dir = tempfile.gettempdir()
-        download_and_extract_form_release("ltxhhz/LL-plugin-list-viewer")
         
-        if not os.path.exists(existing_destination_path):
-            os.makedirs(plugin_path, exist_ok=True)
-            print(f"移动自: {os.path.join(temp_dir, 'list-viewer')}")
-            print(f"移动到: {existing_destination_path}")
+        if not os.path.exists(existing_destination_path) or not os.path.exists(os.path.join(existing_destination_path, 'main', 'index.js')):
+            if not os.path.exists(existing_destination_path):
+                os.makedirs(plugin_path, exist_ok=True)
+            else:
+                print("检测到已安装插件商店可能存在问题，即将重装")
+                shutil.rmtree(existing_destination_path)                
+            print("更新和安装插件请使用 release 版本")
+            print("非 release 版本可能导致 QQ 无法正常启动")
+            
+            # 下载并解压插件
+            download_and_extract_form_release("ltxhhz/LL-plugin-list-viewer")
+#           print(f"移动自: {os.path.join(temp_dir, 'list-viewer')}")
+#           print(f"移动到: {existing_destination_path}")
             shutil.move(os.path.join(temp_dir, "list-viewer"), plugin_path)
         else:
-            index_js_path = os.path.join(existing_destination_path, 'main', 'index.js')
-            if not os.path.exists(index_js_path):
-                print("检测到已安装插件商店可能存在问题，即将重装")
-                print("更新和安装插件请使用 release 版本")
-                print("非 release 版本可能导致 QQ 无法正常启动")
-                shutil.rmtree(existing_destination_path)
-                os.makedirs(existing_destination_path, exist_ok=True)
-                print(f"移动自: {os.path.join(temp_dir, 'list-viewer')}")
-                print(f"移动到: {existing_destination_path}")
-                shutil.move(os.path.join(temp_dir, "list-viewer"), existing_destination_path)
-            else:
-                print("检测到已安装插件商店，不在重新安装")
+            print("检测到已安装插件商店，不再重新安装")
                 
     except Exception as e:
         print(f"安装插件商店发生错误: {e}\n请尝试手动安装")
@@ -560,50 +546,63 @@ def get_working_proxy():
                 return result
     return None
 
+def get_download_url(url: str) -> str:
+    if can_connect(url):
+        return url
+    proxy = get_working_proxy()
+    if not proxy:
+        raise ValueError("无可用代理")
+    return f"{proxy}/{url}"
 
-def download_file(url_or_path: str, filename: str, timeout: int = 10):
+def download_file(url_or_path: str, filepath: str, timeout: int = 10):
     try:
         # 检查是否为本地文件路径
         if os.path.exists(url_or_path):
             print(f"使用本地文件路径: {url_or_path}")
-            shutil.copy(url_or_path, filename)
+            shutil.copy(url_or_path, filepath)
             return
-        elif url_or_path.startswith(('http://', 'https://')):
-            download_url = url_or_path if can_connect_to_github() else f"{get_working_proxy()}/{url_or_path}"
-            print(f"当前使用的下载链接: {download_url}")
-            
-            # 尝试下载文件
-            try:
-                # 使用 urlopen 方法来设置超时
-                with urllib.request.urlopen(download_url, timeout=timeout) as response:
-                    with open(filename, 'wb') as out_file:
-                        out_file.write(response.read())
-                return
-            except urllib.error.URLError as e:
-                print(f"下载失败，错误信息: {e}\n尝试使用代理进行下载")
-                proxy = get_working_proxy()
-                if proxy:
-                    download_url = f"{proxy}/{url_or_path}"
-                    print(f"当前使用的下载链接: {download_url}")
-                else:
-                    raise ValueError("无可用代理")
-                    
-        else:
+        if not url_or_path.startswith(('http://', 'https://')):
             raise ValueError(f"无效的路径或 URL: {url_or_path}")
             
-        # 再次尝试下载文件
-        with urllib.request.urlopen(download_url, timeout=timeout) as response:
-            with open(filename, 'wb') as out_file:
-                out_file.write(response.read())
+        download_url = get_download_url(url_or_path)
+        print(f"当前使用的下载链接: {download_url}")
+        
+        try:
+            # 使用 urlopen 方法来设置超时
+            with urllib.request.urlopen(download_url, timeout=timeout) as response:
+                with open(filepath, 'wb') as out_file:
+                    out_file.write(response.read())
+            return
+        except urllib.error.URLError as e:
+            print(f"下载失败，错误信息: {e}\n尝试再次进行下载")
+            download_url = get_download_url(url_or_path)
+            print(f"当前使用的下载链接: {download_url}")
+
+            # 再次尝试下载文件
+            with urllib.request.urlopen(download_url, timeout=timeout) as response:
+                with open(filepath, 'wb') as out_file:
+                    out_file.write(response.read())
                 
     except Exception as e:
         print(f"下载过程中发生错误: {e}")
         external_data_path = get_external_data_path()
         if external_data_path:
-            print("使用内嵌版本")
-            fallback_path = os.path.join(external_data_path, filename)
-            if os.path.exists(fallback_path):
-                shutil.copy(fallback_path, filename)
+#           print(f"使用内嵌版本，路径{external_data_path}")
+            print(f"使用内嵌版本")
+            
+            filename = os.path.basename(filepath)
+            filename = os.path.splitext(filename)[0]
+            
+            found = False
+            for file in os.listdir(external_data_path):
+                if file.startswith(f"{filename}-") and file.endswith(".zip"):
+                    # 找到符合条件的内嵌文件
+                    fallback_path = os.path.join(external_data_path, file)  # 更新路径为实际文件
+                    found = True
+                    break
+            if found:
+                shutil.copy(fallback_path, filepath)
+                print(f"已将内嵌版本文件复制到: {filepath}")
             else:
                 raise ValueError(f"内嵌文件未找到: {fallback_path}")
         else:
@@ -612,7 +611,7 @@ def download_file(url_or_path: str, filename: str, timeout: int = 10):
                             "/archive/master.zip 或 C:\\path\\to\\file.zip ）：")
             if not download_url:
                 raise ValueError("未提供有效的下载地址或本地文件路径")
-            download_file(download_url, filename)
+            download_file(download_url, filepath)
 
 
 def get_latest_version(file_path):
@@ -638,9 +637,10 @@ def get_latest_version(file_path):
     
     return latest_version
 
+
 def download_and_extract_form_release(repos: str):
     temp_dir = tempfile.gettempdir()
-    print(f"临时目录：{temp_dir}")
+#   print(f"临时目录：{temp_dir}")
 
     cached_names = {
         "ltxhhz/LL-plugin-list-viewer": "list-viewer.zip",
@@ -652,16 +652,32 @@ def download_and_extract_form_release(repos: str):
         return
 
     filename = cached_names[repos]
-    download_url = f"https://github.com/{repos}/releases/latest/download/{filename}"
     zip_path = os.path.join(temp_dir, filename)
 
     try:
-        download_file(download_url, zip_path)
-        extract_dir = os.path.join(temp_dir, filename.split(".")[0])
-        shutil.unpack_archive(zip_path, extract_dir)
+        # 获取网站上的最新版本号
+        latest_version = get_latest_tag(repos)
+        print(f"网站上的最新版本: {latest_version}")
+        
+        # 获取内置版本号
+        
+        internal_version = get_internal_version(filename)
+        print(f"内置版本: {internal_version}")
+        
+        if latest_version == internal_version:
+            print(f"内置版本与最新版本一致，使用内置版本")
+            filename = os.path.splitext(filename)[0]
+            extract_dir = os.path.join(temp_dir, filename.split(".")[0])
+            shutil.unpack_archive(os.path.join(get_external_data_path(), f"{filename}-{internal_version}.zip"), extract_dir)
+            return
     except Exception as e:
-        print(f"下载并解压 {repos} 时发生错误: {e}")
-
+        print(f"从GitHub获取版本信息 {repos} 时发生错误: {e}")
+        
+    print(f"下载最新版本")
+    download_url = f"https://github.com/{repos}/releases/latest/download/{filename}"
+    download_file(download_url, zip_path)
+    extract_dir = os.path.join(temp_dir, filename.split(".")[0])
+    shutil.unpack_archive(zip_path, extract_dir)
         
         
 def download_and_extract_from_git(repos: str):
@@ -695,18 +711,57 @@ def download_and_extract_from_git(repos: str):
     except Exception as e:
         print(f"Git 版下载并解压 {repos} 时发生错误: {e}")
         raise
-        
+    
         
 def get_external_data_path():
+    # 兼容 PyInstaller
     if hasattr(sys, '_MEIPASS'):
-        # If running in a PyInstaller bundle
-        return os.path.join(sys._MEIPASS)
-    else:
-        return None
+        return sys._MEIPASS  # PyInstaller 打包后的临时文件路径
+    # 兼容 Nuitka
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    # 查找以 "LiteLoaderQQNT-" 开头，".zip" 结尾的文件
+    for file in os.listdir(base_dir):
+        if file.startswith("LiteLoaderQQNT-") and file.endswith(".zip"):
+            return base_dir  # 如果找到符合条件的文件，返回当前路径
+    return None
+
+
+def get_latest_tag(repo):
+    url = f"https://api.github.com/repos/{repo}/releases"
+    response = requests.get(url)
+    response.raise_for_status()  # 检查请求是否成功
+    releases = response.json()
+    if releases:
+        return releases[0]['tag_name']
+    return None
+
+
+def get_internal_version(filename):
+    """ 获取内置版本号，假设内置版本文件命名为 {filename}-{version}.zip """
+    filename = os.path.splitext(filename)[0]
+    external_data_path = get_external_data_path()
+    
+    # 检查路径是否存在
+    if not external_data_path:
+        raise FileNotFoundError("无法找到外部数据路径。")
+        
+        # 查找符合命名格式的文件
+    for file in os.listdir(external_data_path):
+        if file.startswith(f"{filename}-") and file.endswith(".zip"):
+            # 从文件名中提取版本号
+            version = file.split('-')[-1].replace('.zip', '')
+            return version
+        
+    return None  # 如果没有找到匹配的内置版本文件，则返回 None
+
 
 
 def main():
     try:
+        # 检查命令行参数，决定是否启用静默安装
+        if '--silent' in sys.argv:
+            config.timeout = 0  # 静默安装时将超时时间设置为 0
+            
         # 检测是否在 GitHub Actions 中运行
         github_actions = os.getenv("GITHUB_ACTIONS", False)
 
